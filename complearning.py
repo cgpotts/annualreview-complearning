@@ -16,7 +16,7 @@ that synthesize compositionality and machine learning.
 __author__ = "Christopher Potts"
 __copyright__ = "Copyright 2014, Christopher Potts"
 __credits__ = []
-__license__ = "Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License: http://creativecommons.org/licenses/by-nc-sa/3.0/"
+__license__ = "MIT License (MIT)"
 __version__ = "0.1"
 __maintainer__ = "Christopher Potts"
 __email__ = "See the author's website"
@@ -34,9 +34,9 @@ def score(x=None, y=None, phi=None, w=None):
     """Calculates the inner product w * phi(x,y)."""
     return sum(w[f]*count for f, count in phi(x, y).items())
 
-def predict(x=None, w=None, phi=None, classes=None):    
+def predict(x=None, w=None, phi=None, classes=None, transform=(lambda x : x)):    
     scores = [(score(x, y_prime, phi, w), y_prime) for y_prime in classes(x)]
-    return sorted(scores)[-1][1]
+    return transform(sorted(scores)[-1][1])
 
 ######################################################################
 ## OPTIMIZATION
@@ -92,16 +92,14 @@ def phi_all_words(x, y):
 ######################################################################
 ## GEN AND ITS INTERPRETATION
 
-def GEN(x=None, d=None, lexicon=None):
+def GEN(x=None, lexicon=None):
     """Given a lexicon, produce all the logical forms for input_str
     given the grammar defined by rules. If d is specified, filter off
     LFs whose denotion is not d."""
-    lfs = parse(x.split())    
-    if d:
-        lfs = [lf for lf in lfs if sem(lf) == d]
+    lfs = parse(x.split(), lexicon=lexicon)        
     return lfs
           
-def parse(words):
+def parse(words, lexicon=None):
     """CYK parsing, which we can get away with because it is
     easy to define regular expressions over our logical forms,
     thereby allowing us to use a standard chart parsing set-up.
@@ -110,7 +108,7 @@ def parse(words):
     trace = defaultdict(list)
     for i in range(1,n):
         word = words[i-1]
-        trace[(i-1,i)] = [[lex, word] for lex in crude_lexicon[word]]
+        trace[(i-1,i)] = [[lex, word] for lex in lexicon[word]]
     for j in range(2, n):
         for i in range(j-1, -1, -1):
             for k in range(i+1, j):
@@ -189,9 +187,9 @@ def LatentSGD(D=None, phi=None, classes=None, T=100, eta=0.01):
         shuffle(D)
         for x, d in D:
             # Get the best viable candidate given the current weights:
-            y = predict(x, w, phi=phi, classes=(lambda x : classes(x, d=d)))
+            y = predict(x, w, phi=phi, classes=(lambda z : [zd for zd in classes(z) if sem(zd) == d]))
             # Get all (score, y') pairs:
-            scores = [(score(x, y_alt, phi, w)+cost(y, y_alt), y_alt) for y_alt in classes(x, d=None)]
+            scores = [(score(x, y_alt, phi, w)+cost(y, y_alt), y_alt) for y_alt in classes(x)]
             # The argmax is the highest scoring label (bottom of the list):
             y_tilde = sorted(scores)[-1][1]
             # Weight-update:
@@ -204,7 +202,7 @@ def LatentSGD(D=None, phi=None, classes=None, T=100, eta=0.01):
 ######################################################################
 ## GENERIC EVALUATION FUNCTION
             
-def evaluate(phi=None, optimizer=None, train=None, test=None, classes=None, T=100, eta=0.1):
+def evaluate(phi=None, optimizer=None, train=None, test=None, classes=None, T=100, eta=0.1, output_transform=(lambda x : x)):
     print "======================================================================"    
     print "FEATURE FUNCTION: " + phi.__name__    
     w = optimizer(D=train, phi=phi, T=T, eta=eta, classes=classes)
@@ -216,11 +214,11 @@ def evaluate(phi=None, optimizer=None, train=None, test=None, classes=None, T=10
         print "--------------------------------------------------"
         print '%s PREDICTIONS' % label
         for x, y in data:
-            prediction = predict(x, w, phi=phi, classes=classes)
-            print '\nInput:', x
+            prediction = predict(x, w, phi=phi, classes=classes, transform=output_transform)
+            print '\nInput:   ', x
             print 'Gold:      ', y
             print 'Prediction:', prediction
-            print 'Correct:', y == prediction
+            print 'Correct:   ', y == prediction
 
 ######################################################################
 
@@ -254,25 +252,7 @@ if __name__ == '__main__':
                      eta=0.03)
 
     ##################################################################
-
-    # This lexicon is not involved in the algorithms, but it can be used
-    # to create train/test data, via string supplied to GEN with the
-    # signature GEN(s, lexicon=gold_lexicon).
-    gold_lexicon = {
-        'one': ['1'],
-        'two': ['2'],
-        'three': ['3'],
-        'four': ['4'],
-        'five': ['5'],
-        'six': ['6'],
-        'seven': ['7'],
-        'eight': ['8'],
-        'nine': ['9'],
-        'plus': ['+'],
-        'minus': ['-', '~'],
-        'times': ['*'],
-    }
-
+   
     # This crude lexicon is the starting point for learning; it respects
     # typing but nothing else:
     crude_lexicon = {}
@@ -288,53 +268,55 @@ if __name__ == '__main__':
     # logical form y.  The semantic parsing algorithms use only x and y,
     # and the interpretive algorithms use only x and d.
     sem_train = [
-        ['two times three', ['(+ 2 3)', ['+ 2', ['2', 'two'], ['+', 'plus']], ['3', 'three']], 6],
-        ['minus one', ['~1', ['~', 'minus'], ['1', 'one']], -1],
-        ['minus three minus two', ['(- ~3 2)', ['- ~3', ['~3', ['~', 'minus'], ['3', 'three']], ['-', 'minus']], ['2', 'two']], -6],     
-        ['two times two', ['(* 2 2)', ['* 2', ['2', 'two'], ['*', 'times']], ['2', 'two']], 4],     
+        ['one plus two', ['(+ 1 2)', ['+ 1', ['1', 'one'], ['+', 'plus']], ['2', 'two']], 3],
         ['two plus two', ['(+ 2 2)', ['+ 2', ['2', 'two'], ['+', 'plus']], ['2', 'two']], 4],
-        ['one plus one', ['(+ 1 1)', ['+ 1', ['1', 'one'], ['+', 'plus']], ['1', 'one']], 2],
-        ['three plus minus two', ['(+ 3 ~2)', ['+ 3', ['3', 'three'], ['+', 'plus']], ['~2', ['~', 'minus'], ['2', 'two']]], 1],
-        ['two times three', ['(* 2 3)', ['* 2', ['2', 'two'], ['*', 'times']], ['3', 'three']], 6],     
         ['two plus three', ['(+ 2 3)', ['+ 2', ['2', 'two'], ['+', 'plus']], ['3', 'three']], 5],
-        ['three times three minus two', ['(* 3 (- 3 2))', ['* 3', ['3', 'three'], ['*', 'times']], ['(- 3 2)', ['- 3', ['3', 'three'], ['-', 'minus']], ['2', 'two']]], 3]
+        ['three plus one', ['(+ 3 1)', ['+ 3', ['3', 'three'], ['+', 'plus']], ['1', 'one']], 4],
+        ['three plus minus two', ['(+ 3 ~2)', ['+ 3', ['3', 'three'], ['+', 'plus']], ['~2', ['~', 'minus'], ['2', 'two']]], 1],
+        ['two plus two', ['(+ 2 2)', ['+ 2', ['2', 'two'], ['+', 'plus']], ['2', 'two']], 4],
+        ['three minus two', ['(- 3 2)', ['- 3', ['3', 'three'], ['-', 'minus']], ['2', 'two']], 1],
+        ['minus three minus two', ['~(- 3 2)', ['~', 'minus'], ['(- 3 2)', ['- 3', ['3', 'three'], ['-', 'minus']], ['2', 'two']]], -1],
+        ['two times two', ['(* 2 2)', ['* 2', ['2', 'two'], ['*', 'times']], ['2', 'two']], 4],
+        ['one times one', ['(* 1 1)', ['* 1', ['1', 'one'], ['*', 'times']], ['1', 'one']], 1],
+        ['two times three', ['(* 2 3)', ['* 2', ['2', 'two'], ['*', 'times']], ['3', 'three']], 6],
+        ['three plus three minus two', ['(+ 3 (- 3 2))', ['+ 3', ['3', 'three'], ['+', 'plus']], ['(- 3 2)', ['- 3', ['3', 'three'], ['-', 'minus']], ['2', 'two']]], 4]
     ]
 
     # A list of triples with the same format as the training data; the
     # algorithms should do well on the first three and fail on the last
     # one because 'four'/4 never appears in the training data.
     sem_test = [
-        ['minus three', ['~3', ['~', 'minus'], ['3', 'three']], -3],     
-        ['three plus one', ['(+ 3 1)', ['+ 3', ['3', 'three'], ['+', 'plus']], ['1', 'one']], 4],
+        ['minus three', ['~3', ['~', 'minus'], ['3', 'three']], -3],
+        ['three plus two', ['(+ 3 2)', ['+ 3', ['3', 'three'], ['+', 'plus']], ['2', 'two']], 5],
         ['two times two plus three', ['(+ (* 2 2) 3)', ['+ (* 2 2)', ['(* 2 2)', ['* 2', ['2', 'two'], ['*', 'times']], ['2', 'two']], ['+', 'plus']], ['3', 'three']], 7],
         ['minus four', ['~4', ['~', 'minus'], ['4', 'four']], -4]
     ]
             
     def evaluate_semparse():
         semparse_train = [[x,y] for x, y, d in sem_train]
-        semparse_test = [[x,y] for x, y, d in sem_test]
-        classes = (lambda x : GEN(x, lexicon=crude_lexicon))
+        semparse_test = [[x,y] for x, y, d in sem_test]        
         evaluate(phi=phi_semparse,
                  optimizer=SGD,
                  train=semparse_train,
                  test=semparse_test,
-                 classes=classes,
+                 classes=(lambda x : GEN(x, lexicon=crude_lexicon)),
                  T=100,
-                 eta=0.01)
+                 eta=0.1)
 
     def evaluate_interpretive():
         interpretive_train = [[x,d] for x, y, d in sem_train]
         interpretive_test = [[x,d] for x, y, d in sem_test]
-        classes = (lambda x, d : GEN(x, d=d, lexicon=crude_lexicon))
         evaluate(phi=phi_semparse,
                  optimizer=LatentSGD,
                  train=interpretive_train,
                  test=interpretive_test,
-                 classes=classes,
+                 classes=(lambda x : GEN(x, lexicon=crude_lexicon)),
                  T=100,
-                 eta=0.01)
+                 eta=0.1,
+                 output_transform=sem)
 
 
     #evaluate_evenodd()
     #evaluate_semparse()
     evaluate_interpretive()
+
