@@ -316,7 +316,7 @@ if __name__ == '__main__':
                  output_transform=sem)
 
 
-    #evaluate_evenodd()
-    #evaluate_semparse()
+    evaluate_evenodd()
+    evaluate_semparse()
     evaluate_interpretive()
 
