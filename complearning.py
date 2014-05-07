@@ -16,7 +16,7 @@ that synthesize compositionality and machine learning.
 __author__ = "Christopher Potts"
 __copyright__ = "Copyright 2014, Christopher Potts"
 __credits__ = []
-__license__ = "MIT License (MIT)"
+__license__ = "GNU general public license, version 2"
 __version__ = "0.1"
 __maintainer__ = "Christopher Potts"
 __email__ = "See the author's website"
