@@ -300,8 +300,8 @@ if __name__ == '__main__':
                  train=semparse_train,
                  test=semparse_test,
                  classes=(lambda x : GEN(x, lexicon=crude_lexicon)),
-                 T=100,
-                 eta=0.1)
+                 T=10,
+                 eta=0.3)
 
     def evaluate_interpretive():
         interpretive_train = [[x,d] for x, y, d in sem_train]
@@ -311,8 +311,8 @@ if __name__ == '__main__':
                  train=interpretive_train,
                  test=interpretive_test,
                  classes=(lambda x : GEN(x, lexicon=crude_lexicon)),
-                 T=100,
-                 eta=0.1,
+                 T=10,
+                 eta=0.3,
                  output_transform=sem)
 
 
