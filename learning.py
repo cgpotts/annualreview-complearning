@@ -47,7 +47,7 @@ def predict(x=None, w=None, phi=None, classes=None, transform=(lambda x : x)):
     scores = [(score(x, y_prime, phi, w), y_prime) for y_prime in classes(x)]
     return transform(sorted(scores)[-1][1])
 
-def SGD(D=None, phi=None, classes=None, T=1000, eta=0.03, output_transform=None):
+def SGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=None):
     """Implements stochatic (sub)gradient descent, as in the paper. classes should be a
     function of the input x for structure prediction cases (where classes is GEN)."""
     w = defaultdict(float)
@@ -65,7 +65,7 @@ def SGD(D=None, phi=None, classes=None, T=1000, eta=0.03, output_transform=None)
                 w[f] += eta * (actual_rep[f] - predicted_rep[f])
     return w
 
-def LatentSGD(D=None, phi=None, classes=None, T=100, eta=0.01, output_transform=None):
+def LatentSGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=None):
     """Implements stochatic (sub)gradient descent for the latent SVM
     objective, as in the paper. classes is defined as GEN(x, d) for
     each input x."""
