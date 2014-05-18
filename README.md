@@ -1,4 +1,4 @@
-annualreview-complearning
+Bringing machine learning and compositional semantics together
 =========================
 
 Demonstration code for the paper
@@ -15,7 +15,7 @@ All of the files contain detailed explanations and documentation, with
 cross references to the paper. evenodd.py, grammar.py, synthesis.py
 run demos corresponding to examples and discussions from the paper.
 
-# Code snippets
+## Code snippets
 
 Build the gold-standard grammar and use it for parsing:
 
@@ -25,14 +25,14 @@ gram = Grammar(gold_lexicon, rules, functions)
 gram.gen('minus two plus three')
 ```
 
-And intepretation:
+And interpretation:
 
 ```python
 for lf in gram.gen('minus two plus three'):
     print gram.sem(lf)
 ```
 
-Check out the crazy thing that the crude grammar does with the simple
+Check out the crazy things that the crude grammar does with the simple
 example (it creates 486 logical forms):
 
 ```python
@@ -48,11 +48,13 @@ and the crude grammar as a starting point:
 from semdata import sem_train
 from synthesis import phi_sem
 from learning import SGD
+# For semantic parsing, the denotations are ignored:
 semparse_train = [[x,y] for x, y, d in sem_train]
+# The space of output classes is determined by GEN:
 weights = SGD(D=semparse_train, phi=phi_sem, classes=crude_gram.gen)
 ```
 
-And now see that the crude grammar plus the weights deliver a right
+And now see that the crude grammar plus the learned weights deliver a right
 result for 'minus two plus three' (the training set happens to favor
 the second parse in the list returned by the gold grammar `gram`):
 
