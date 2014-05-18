@@ -15,6 +15,57 @@ All of the files contain detailed explanations and documentation, with
 cross references to the paper. evenodd.py, grammar.py, synthesis.py
 run demos corresponding to examples and discussions from the paper.
 
+# Code snippets
+
+Build the gold-standard grammar and use it for parsing:
+
+```python
+from grammar import Grammar, gold_lexicon, rules, functions
+gram = Grammar(gold_lexicon, rules, functions)
+gram.gen('minus two plus three')
+```
+
+And intepretation:
+
+```python
+for lf in gram.gen('minus two plus three'):
+    print gram.sem(lf)
+```
+
+Check out the crazy thing that the crude grammar does with the simple
+example (it creates 486 logical forms):
+
+```python
+from synthesis import crude_lexicon
+crude_gram = Grammar(crude_lexicon, rules, functions)
+crude_gram.gen('minus two plus three')
+```
+
+Train a semantic parsing model using the default training set from `semdata.py`
+and the crude grammar as a starting point:
+
+```python
+from semdata import sem_train
+from synthesis import phi_sem
+from learning import SGD
+semparse_train = [[x,y] for x, y, d in sem_train]
+weights = SGD(D=semparse_train, phi=phi_sem, classes=crude_gram.gen)
+```
+
+And now see that the crude grammar plus the weights deliver a right
+result for 'minus two plus three' (the training set happens to favor
+the second parse in the list returned by the gold grammar `gram`):
+
+```python
+from learning import predict
+predict(x='minus two plus three', w=weights, phi=phi_sem, classes=crude_gram.gen)
+```
+
+For semantic parsing with the trees/derivations as latent variables,
+and for learning from denotations, see `synthesis.evaluate_interpretive` and
+`synthesis.evaluate_latent_semparse`.
+
+
 ## grammar.py 
 
 Implements a simple interpreted context-free grammar formalism in
