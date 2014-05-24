@@ -43,9 +43,15 @@ def score(x=None, y=None, phi=None, w=None):
     """Calculates the inner product w * phi(x,y)."""
     return sum(w[f]*count for f, count in phi(x, y).items())
 
-def predict(x=None, w=None, phi=None, classes=None, transform=(lambda x : x)):    
+def predict(x=None, w=None, phi=None, classes=None, output_transform=(lambda x : x)):    
     scores = [(score(x, y_prime, phi, w), y_prime) for y_prime in classes(x)]
-    return transform(sorted(scores)[-1][1])
+    # Get the maximal score:
+    max_score = sorted(scores)[-1][0]
+    # Get all the candidates with the max score and chose one randomly:
+    y_hats = [y_alt for s, y_alt in scores if s == max_score]
+    shuffle(y_hats)            
+    y_hat = y_hats[0]
+    return output_transform(y_hat)
 
 def SGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=None):
     """Implements stochatic (sub)gradient descent, as in the paper. classes should be a
@@ -56,13 +62,17 @@ def SGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=None):
         for x, y in D:
             # Get all (score, y') pairs:
             scores = [(score(x, y_alt, phi, w)+cost(y, y_alt), y_alt) for y_alt in classes(x)]
-            # The argmax is the highest scoring label (bottom of the list):
-            y_tilde = sorted(scores)[-1][1]
+            # Get the maximal score:
+            max_score = sorted(scores)[-1][0]
+            # Get all the candidates with the max score and chose one randomly:
+            y_tildes = [y_alt for s, y_alt in scores if s == max_score]
+            shuffle(y_tildes)            
+            y_tilde = y_tildes[0]
             # Weight-update (a bit cumbersome because of the dict-based implementation):
             actual_rep = phi(x, y)
             predicted_rep = phi(x, y_tilde)
             for f in set(actual_rep.keys() + predicted_rep.keys()):
-                w[f] += eta * (actual_rep[f] - predicted_rep[f])
+                w[f] += eta * (actual_rep[f] - predicted_rep[f])                             
     return w
 
 def LatentSGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=None):
@@ -77,13 +87,17 @@ def LatentSGD(D=None, phi=None, classes=None, T=10, eta=0.1, output_transform=No
             y = predict(x, w, phi=phi, classes=(lambda z : [zd for zd in classes(z) if output_transform(zd) == d]))
             # Get all (score, y') pairs:
             scores = [(score(x, y_alt, phi, w)+cost(y, y_alt), y_alt) for y_alt in classes(x)]
-            # The argmax is the highest scoring label (bottom of the list):
-            y_tilde = sorted(scores)[-1][1]
+            # Get the maximal score:
+            max_score = sorted(scores)[-1][0]
+            # Get all the candidates with the max score and chose one randomly:
+            y_tildes = [y_alt for s, y_alt in scores if s == max_score]
+            shuffle(y_tildes)            
+            y_tilde = y_tildes[0]
             # Weight-update:
             actual_rep = phi(x, y)
             predicted_rep = phi(x, y_tilde)
             for f in set(actual_rep.keys() + predicted_rep.keys()):
-                w[f] += eta * (actual_rep[f] - predicted_rep[f])
+                w[f] += eta * (actual_rep[f] - predicted_rep[f])            
     return w
 
 def cost(y, y_prime):
@@ -114,7 +128,7 @@ def evaluate(phi=None,
         print "--------------------------------------------------"
         print '%s predictions' % label
         for x, y in data:
-            prediction = predict(x, w, phi=phi, classes=classes, transform=output_transform)
+            prediction = predict(x, w, phi=phi, classes=classes, output_transform=output_transform)
             print '\nInput:   ', x
             print 'Gold:      ', y
             print 'Prediction:', prediction
