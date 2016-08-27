@@ -5,15 +5,19 @@ Demonstration code for the paper
 
 Liang, Percy and Christopher Potts. 2014. [Bringing machine learning
 and compositional semantics together](http://www.stanford.edu/~cgpotts/manuscripts/liang-potts-semantics.pdf). 
-Submitted to the Annual Review of Linguistics.
+_Annual Review of Linguistics_ 1(1): 355&ndash;376. 
 
 The purpose of the code is just to illustrate how the algorithms work,
 as an aid to understanding the paper and developing new models
 that synthesize compositionality and machine learning.
 
 All of the files contain detailed explanations and documentation, with
-cross references to the paper. evenodd.py, grammar.py, synthesis.py
+cross references to the paper. `evenodd.py`, `grammar.py`, `synthesis.py`
 run demos corresponding to examples and discussions from the paper.
+
+The current verson has been tested with Python 2.7 and Python 3.5. The
+only other requirement is Numpy 1.10 or greater, and that dependency 
+is only for the neural network in `distributed.py`.
 
 ## Code snippets
 
@@ -50,6 +54,7 @@ from synthesis import phi_sem
 from learning import SGD
 # For semantic parsing, the denotations are ignored:
 semparse_train = [[x,y] for x, y, d in sem_train]
+
 # The space of output classes is determined by GEN:
 weights = SGD(D=semparse_train, phi=phi_sem, classes=crude_gram.gen)
 ```
