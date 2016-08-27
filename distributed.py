@@ -1,5 +1,25 @@
 #!/usr/bin/env python
 
+"""
+Implements the simple supervised learning example from table 3 of the
+paper. Use
+
+python distributed.py
+
+to run the example from the paper. Some additional examples are
+included as well.
+"""
+
+
+__author__ = "Christopher Potts and Percy Liang"
+__copyright__ = "Copyright 2014-, Christopher Potts and Percy Liang"
+__credits__ = []
+__license__ = "GNU general public license, version 2"
+__version__ = "2.0"
+__maintainer__ = "Christopher Potts"
+__email__ = "See the authors' websites"
+
+
 import sys
 import random
 import math
@@ -8,17 +28,19 @@ from numpy import array, matrix, dot, outer
 from copy import deepcopy
 from random import shuffle
 
+
 def randfloat(lower=-0.5, upper=0.5):
-    """Return a random value x such that lower <= x <= upper"""
+    """Return a random value x such that `lower <= x <= upper`"""
     return random.uniform(lower, upper)
 
 def randmatrix(m, n, lower=-0.5, upper=0.5):
-    """Return an m x n matrix of random valuecopys x such that lower <= x <= upper"""
+    """Return an `m` x `n` matrix of random values of `x`
+    such that `lower <= x <= upper`"""
     vals = numpy.array([randfloat(lower, upper) for i in range(m*n)])
     return vals.reshape(m, n)
 
 def sigmoid(z):
-    """Inverse logistic function; scales all values to 0 <= x <= 1"""
+    """Inverse logistic function; scales all values to `0 <= x <= 1`"""
     return 1.0 / (1.0 + numpy.exp(-z))
 
 def sigmoid_prime(z):
@@ -26,7 +48,7 @@ def sigmoid_prime(z):
     return z * (1.0 - z)
 
 def tanh(z):
-    """Hyperbolic tangent function; scales all values to -1 <= x <= 1"""
+    """Hyperbolic tangent function; scales all values to `-1 <= x <= 1`"""
     return numpy.tanh(z)
 
 def tanh_prime(z):
@@ -35,12 +57,11 @@ def tanh_prime(z):
 
 class ShallowNeuralNetwork:
     def __init__(self,
-                 input_dim=0,
-                 hidden_dim=0,
-                 output_dim=0,
-                 activation_func=tanh,
-                 activation_func_prime=tanh_prime
-                 ):
+            input_dim=0,
+            hidden_dim=0,
+            output_dim=0,
+            activation_func=tanh,
+            activation_func_prime=tanh_prime):
         self.input_dim = input_dim + 1 # +1 for the bias, in final position
         self.hidden_dim = hidden_dim + 1 # +1 for the bias, in final position
         self.output_dim = output_dim
@@ -49,27 +70,38 @@ class ShallowNeuralNetwork:
         self.input_layer = numpy.ones(self.input_dim)                                            
         self.hidden_layer = numpy.ones(self.hidden_dim)        
         self.output_layer = numpy.ones(self.output_dim)
-        self.input_weights = randmatrix(self.input_dim, self.hidden_dim-1) # input weights ignore the bias        
+        # input weights ignore the bias in final position:
+        self.input_weights = randmatrix(self.input_dim, self.hidden_dim-1)      
         self.output_weights = randmatrix(self.hidden_dim, self.output_dim)
         self.output_errors = numpy.zeros(self.output_dim)
         self.input_errors = numpy.zeros(self.input_dim)
         
-    def forward_propagation(self, inputs):        
-        self.input_layer[ :-1] = inputs # ignore the bias in final position
-        self.hidden_layer[ : -1] = self.activation_func(dot(self.input_layer, self.input_weights)) # ignore the bias in final position
+    def forward_propagation(self, inputs):
+        # ignore the bias in final position:
+        self.input_layer[ :-1] = inputs
+        # ignore the bias in final position:
+        self.hidden_layer[ : -1] = self.activation_func(dot(self.input_layer, self.input_weights)) 
         self.output_layer = self.activation_func(dot(self.hidden_layer, self.output_weights))
         return deepcopy(self.output_layer)
         
-    def backward_propagation(self, labels, alpha=0.2, momentum=0.1):
+    def backward_propagation(self, labels, alpha=0.2):
         labels = array(labels)       
-        self.output_errors = (labels - self.output_layer) * self.activation_func_prime(self.output_layer)
-        self.hidden_errors = dot(self.output_errors, self.output_weights.T) * self.activation_func_prime(self.hidden_layer)
+        self.output_errors = (labels - self.output_layer) * \
+          self.activation_func_prime(self.output_layer)
+        self.hidden_errors = dot(self.output_errors, self.output_weights.T) * \
+          self.activation_func_prime(self.hidden_layer)
         self.output_weights += alpha * outer(self.hidden_layer, self.output_errors)
-        self.input_weights += alpha * outer(self.input_layer, self.hidden_errors[:-1]) # ignore the bias in final position
+        # ignore the bias in final position:
+        self.input_weights += alpha * outer(self.input_layer, self.hidden_errors[:-1]) 
         error = sum(0.5 * (labels - self.output_layer)**2)
         return error
 
-    def train(self, training_data, maxiter=5000, alpha=0.5, epsilon=1.5e-8, display_progress=True):       
+    def train(self,
+            training_data,
+            maxiter=5000,
+            alpha=0.5,
+            epsilon=1.5e-8,
+            display_progress=True):       
         iteration = 0
         error = sys.float_info.max
         while error > epsilon and iteration < maxiter:            
@@ -79,7 +111,9 @@ class ShallowNeuralNetwork:
                 self.forward_propagation(ex)
                 error += self.backward_propagation(labels, alpha=alpha)           
             if display_progress:
-                sys.stderr.write('\r') ; sys.stderr.write('Error at iteration %s: %s' % (iteration, error)) ; sys.stderr.flush()                
+                sys.stderr.write('\r')
+                sys.stderr.write('Error at iteration {}: {}'.format(iteration, error))
+                sys.stderr.flush()                
             iteration += 1
         if display_progress:
             sys.stderr.write('\n')
@@ -104,15 +138,15 @@ if __name__ == '__main__':
                                    activation_func=sigmoid,
                                    activation_func_prime=sigmoid_prime)
         net.train(training_data, maxiter=5000, display_progress=True)
-        print 'Inputs', 'Gold', 'Predicted'
+        print('Inputs', 'Gold', 'Predicted')
         for inputs, labels in training_data:
-           print inputs, labels, net.predict(inputs), net.hidden_representation(inputs)        
-        print
-        print 'Input weights'
-        print net.input_weights
-        print
-        print 'Output weights'
-        print net.output_weights
+           print(inputs, labels, net.predict(inputs), net.hidden_representation(inputs))        
+        print()
+        print('Input weights')
+        print(net.input_weights)
+        print()
+        print('Output weights')
+        print(net.output_weights)
         
     def boolean_xor():
          training_data = [            
@@ -121,7 +155,7 @@ if __name__ == '__main__':
             ([0,1], [1]),
             ([0,0], [0])
             ]
-         print 'XOR'
+         print('XOR')
          generic_demo(training_data)
 
     def boolean_iff():
@@ -131,7 +165,7 @@ if __name__ == '__main__':
             ([0,1], [0]),
             ([0,0], [1])
             ]
-         print 'IFF'
+         print('IFF')
          generic_demo(training_data)
 
     def exactly_one():
@@ -145,7 +179,7 @@ if __name__ == '__main__':
             ([0,1,0], [1]),
             ([0,0,1], [1]),            
             ]
-         print 'Exactly one (xor over three terms)'
+         print('Exactly one (xor over three terms)')
          generic_demo(training_data)
 
     def modified_nouns():
@@ -160,7 +194,7 @@ if __name__ == '__main__':
             (airplane,      [0]),
             (rollercoaster, [1]),            
             ]
-        print 'Modified nouns'
+        print('Modified nouns')
         generic_demo(training_data)  
         
 

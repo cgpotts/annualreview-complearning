@@ -2,19 +2,21 @@
 
 """
 Generates the dataset used for training and evaluating the semantic
-model defined in synthesis.py. The basis for this is gold_lexicon
-and its grammar, as defined in grammar.py.
+model defined in `synthesis.py`. The basis for this is `gold_lexicon`
+and its grammar, as defined in `grammar.py`.
 """
 
 __author__ = "Christopher Potts and Percy Liang"
-__copyright__ = "Copyright 2014, Christopher Potts and Percy Liang"
+__copyright__ = "Copyright 2014-, Christopher Potts and Percy Liang"
 __credits__ = []
 __license__ = "GNU general public license, version 2"
-__version__ = "1.0"
+__version__ = "2.0"
 __maintainer__ = "Christopher Potts"
 __email__ = "See the authors' websites"
 
+
 from grammar import *
+
 
 # Gold grammar for creating the data:
 gram = Grammar(gold_lexicon, rules, functions)
